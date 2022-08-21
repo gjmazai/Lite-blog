@@ -35,7 +35,7 @@ const FormPost = (props) => {
                 type='text'
                 placeholder='Описание поста'
                 onChange={e => setPosts({ ...posts, body: e.target.value })} />
-            <MyButton text={'Создать пост'} onClick={addNewPost} />
+            <MyButton onClick={addNewPost} text={'Опубликовать'} />
         </form>
     );
 }
