@@ -1,56 +1,53 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import PostService from './API/PostService';
 import FormPost from './components/FormPost';
+import PostFilter from './components/PostFilter';
 import PostList from './components/PostList';
-import MySelect from './components/UI/select/MySelect';
+import MyButton from './components/UI/button/MyButton';
+import Loader from './components/UI/loading/Loader';
+import MyModalWindow from './components/UI/modalWindow/MyModalWindow';
+import { useFetching } from './hooks/useFetching';
+import { usePosts } from './hooks/usePosts';
 import './styles/App.css';
 
 function App() {
 
-  const [posts, setPost] = useState([
-    { id: 1, title: 'JavaScript', body: 'Discription 1' },
-    { id: 2, title: 'Python', body: 'Discription 2' },
-    { id: 3, title: 'C++', body: 'Discription 3' },
-    { id: 4, title: 'C#', body: 'Discription 4' },
-    { id: 5, title: 'Rust', body: 'Discription 5' },
-  ])
+  const [posts, setPost] = useState([]);
+  const [filter, setFilter] = useState({ sort: '', query: '' });
+  const [modal, setModal] = useState(false);
+  const sortedAndSearchPosts = usePosts(posts, filter.sort, filter.query);
+  const [fetchPosts, isPostsLoading, postError] = useFetching(async () => {
+    const posts = await PostService.getAll();
+    setPost(posts);
+  })
 
-  const [selectedSort, setSelectedSort] = useState('')
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
   const createPost = (newPost) => {
     setPost([...posts, newPost]);
+    setModal(false);
   }
 
   const removePost = (post) => {
-    setPost(posts.filter(el => el.id !== post.id))
-  }
-
-  const sortPost = (sort) => {
-    setSelectedSort(sort);
-    setPost([...posts].sort((a, b) => a[sort].localeCompare(b[sort])));
+    setPost(posts.filter(el => el.id !== post.id));
   }
 
   return (
     <div>
-      <FormPost post={posts} createPost={createPost} />
+      <MyButton text={'Запрос на сервер'} onClick={fetchPosts} />
+      <MyButton onClick={() => setModal(true)} text={'Создать пользователя'} />
+      <MyModalWindow visible={modal} setVisible={setModal}>
+        <FormPost post={posts} createPost={createPost} />
+      </MyModalWindow>
       <hr style={{ margin: '15px 0' }} />
-      <div>
-        <MySelect
-          value={selectedSort}
-          onChange={sortPost}
-          defaultValue='Сортировка по..'
-          options={[
-            { value: 'title', name: 'По названию' },
-            { value: 'body', name: 'По описанию' },
-          ]}
-        />
-      </div>
-      {posts.length
-        ?
-        <PostList removePost={removePost} post={posts} title={'Список постов'} />
-        :
-        <h1 style={{ textAlign: 'center', margin: '20px' }}>
-          Посты не были найдены
-        </h1>
+      <PostFilter filter={filter} setFilter={setFilter} />
+      {postError &&
+        <h1>Произошла ошибка ${postError}</h1>}
+      {isPostsLoading
+        ? <div style={{ display: 'flex', justifyContent: 'center', marginTop: '50px' }}><Loader /></div>
+        : <PostList removePost={removePost} post={sortedAndSearchPosts} title={'Список постов'} />
       }
     </div >
   );
